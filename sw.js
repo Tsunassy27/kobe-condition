@@ -1,6 +1,6 @@
 'use strict';
 // Increase VERSION whenever an app-shell file changes; publish all files together.
-const VERSION='kobe-shell-1.0.1';
+const VERSION='kobe-shell-1.1.0';
 const PREFIX='kobe-shell-';
 const CACHE=PREFIX+new URL(self.registration.scope).pathname+VERSION;
 const FILES=['./','./index.html','./style.css','./fields.js','./app.js','./manifest.json','./guide.html','./icons/icon-192.png','./icons/icon-512.png','./icons/maskable-512.png','./icons/apple-touch-icon.png'];

@@ -39,6 +39,29 @@ $('date').value=today();let selectedDate=$('date').value;
 $('date').onchange=()=>{if(!isDate($('date').value)||!$('date').checkValidity()){$('date').value=selectedDate;return;}selectedDate=$('date').value;load();};$('today').onclick=()=>{$('date').value=today();selectedDate=$('date').value;load();};$('scope').onchange=renderSummary;
 $('generate').onclick=()=>{validate(collect());if(renderSummary())$('message').textContent='状態報告を生成しました。「文章をコピー」でChatGPTに貼り付けられます。';else $('message').textContent='赤く表示された入力項目を確認してください。';};
 $('copy').onclick=async()=>{if(!renderSummary()){$('message').textContent='入力エラーを修正してからコピーしてください。';return;}try{await navigator.clipboard.writeText($('summary').value);$('message').textContent='コピーしました。元のChatGPTチャットに貼り付けてください。';}catch(e){$('summary').focus();$('summary').select();$('summary').setSelectionRange(0,$('summary').value.length);$('message').textContent='文章を選択しました。長押し→コピー、またはCtrl/Cmd+Cでコピーしてください。';}};
+// Navigate only after a successful copy; never put health data in a URL.
+const COACH_CHAT_URL='https://chatgpt.com/c/6aa00dfc-b8cc-83e9-9bc1-44da4b3d9a50';
+async function copyAndOpenChat(){
+ if($('copyOpen').disabled)return;
+ if(!renderSummary()){$('message').textContent='入力エラーを修正してからチャットを開いてください。';return;}
+ if(!meaningful(collect())){$('message').textContent='状態を入力してからチャットを開いてください。';return;}
+ save();
+ $('copyOpen').disabled=true;
+ try{
+  await navigator.clipboard.writeText($('summary').value);
+ }catch(e){
+  $('summary').focus();$('summary').select();$('summary').setSelectionRange(0,$('summary').value.length);
+  $('message').textContent='コピーできなかったため、チャットは開いていません。選択された文章を長押し→コピー（PCはCtrl/Cmd+C）し、下の「コーチングチャットを開く」を押してください。';
+  $('copyOpen').disabled=false;return;
+ }
+ $('copyOpen').disabled=false;
+ if(navigator.onLine===false){$('message').textContent='文章をコピーしました。インターネット接続後、下の「コーチングチャットを開く」を押し、貼り付けて送信してください。';return;}
+ $('message').textContent='コピーしました。ガーミンコーチングを開きます。入力欄に貼り付けて送信してください。';
+ // Same-tab navigation keeps this reliable after the asynchronous clipboard operation.
+ try{window.location.assign(COACH_CHAT_URL);}catch(e){$('message').textContent='文章はコピー済みです。下の「コーチングチャットを開く」を押し、貼り付けて送信してください。';}
+}
+$('copyOpen').onclick=copyAndOpenChat;
+$('coachLink').href=COACH_CHAT_URL;
 $('textDownload').onclick=()=>{if(renderSummary())download(`kobe-${$('date').value}.txt`,$('summary').value,'text/plain;charset=utf-8');};
 $('export').onclick=()=>{if(recovery){download('kobe-recovery.json',localStorage.getItem(KEY)||'{}','application/json');return;}download('kobe-checkin-backup-'+today()+'.json',JSON.stringify({version:1,records},null,2),'application/json');};
 $('import').onclick=()=>$('file').click();$('file').onchange=async()=>{try{const f=$('file').files[0];if(!f)return;if(f.size>5000000)throw Error('5MB以下のファイルを選んでください。');const data=JSON.parse(await f.text());if(data.version!==1||!data.records||typeof data.records!=='object'||Array.isArray(data.records))throw Error('対応するバックアップではありません。');const incoming=Object.create(null);for(const [d,o] of Object.entries(data.records)){if(!isDate(d))throw Error('日付が不正です。');incoming[d]=clean(o);}if(Object.keys(incoming).some(d=>records[d])&&!confirm('同じ日付はバックアップの内容で上書きしますか？'))return;if(recovery&&!confirm('現在の保存データを置き換えます。必要なら先にバックアップしてください。続けますか？'))return;records={...records,...incoming};recovery=false;store();load();$('message').textContent='バックアップを読み込みました。';}catch(e){$('message').textContent='読み込めませんでした：'+e.message;}finally{$('file').value='';}};
