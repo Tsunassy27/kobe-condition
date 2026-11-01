@@ -1,0 +1,18 @@
+name: Publish latest Pages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  pages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Request a fresh Pages build
+        run: gh api --method POST "repos/$GH_REPO/pages/builds"
